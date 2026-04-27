@@ -18,14 +18,15 @@ API_ID        = 34095059
 API_HASH      = 'f4b6b4787a97be7aa52df3f9712f2276'
 CANAL_ORIGEN  = -1001660762528   # VIP 99% ACCURATE SIGNALS
 CANAL_DESTINO = -1003918090564   # Trading Signals Vip
-SESION        = 'sesion_trading'
+_session_string = os.environ.get('SESSION_STRING')
 
-# Si existe SESSION_BASE64 en el entorno, restaura el archivo .session antes de conectar
-_session_b64 = os.environ.get('SESSION_BASE64')
-if _session_b64:
-    import base64
-    with open(f'{SESION}.session', 'wb') as _f:
-        _f.write(base64.b64decode(_session_b64))
+# En Railway usa StringSession (string corto desde variable de entorno)
+# En local usa el archivo sesion_trading.session
+if _session_string:
+    from telethon.sessions import StringSession
+    SESION = StringSession(_session_string)
+else:
+    SESION = 'sesion_trading'
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
