@@ -2,6 +2,7 @@ import subprocess
 import sys
 import re
 import logging
+import os
 from datetime import datetime
 
 # Instalar telethon si no está disponible
@@ -13,11 +14,18 @@ except ImportError:
     from telethon import TelegramClient, events
 
 # ── Configuración ──────────────────────────────────────────────────────────────
-API_ID       = 34095059
-API_HASH     = 'f4b6b4787a97be7aa52df3f9712f2276'
+API_ID        = 34095059
+API_HASH      = 'f4b6b4787a97be7aa52df3f9712f2276'
 CANAL_ORIGEN  = -1001660762528   # VIP 99% ACCURATE SIGNALS
 CANAL_DESTINO = -1003918090564   # Trading Signals Vip
 SESION        = 'sesion_trading'
+
+# Si existe SESSION_BASE64 en el entorno, restaura el archivo .session antes de conectar
+_session_b64 = os.environ.get('SESSION_BASE64')
+if _session_b64:
+    import base64
+    with open(f'{SESION}.session', 'wb') as _f:
+        _f.write(base64.b64decode(_session_b64))
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -141,7 +149,14 @@ async def reenviar_historico(limite_señales: int = 5):
 
 # ── Punto de entrada ───────────────────────────────────────────────────────────
 async def main():
-    await client.start()
+    bot_token   = os.environ.get('BOT_TOKEN')
+    phone       = os.environ.get('PHONE_NUMBER')
+
+    if bot_token:
+        await client.start(bot_token=bot_token)
+    else:
+        await client.start(phone=phone)
+
     me = await client.get_me()
     log.info(f"Sesión iniciada como: {me.first_name} (@{me.username})")
     log.info(f"Escuchando canal origen: {CANAL_ORIGEN}")
