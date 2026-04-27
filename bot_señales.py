@@ -150,13 +150,16 @@ async def reenviar_historico(limite_señales: int = 5):
 
 # ── Punto de entrada ───────────────────────────────────────────────────────────
 async def main():
-    bot_token   = os.environ.get('BOT_TOKEN')
-    phone       = os.environ.get('PHONE_NUMBER')
+    bot_token = os.environ.get('BOT_TOKEN')
+    phone     = os.environ.get('PHONE_NUMBER')
 
     if bot_token:
         await client.start(bot_token=bot_token)
-    else:
+    elif phone:
         await client.start(phone=phone)
+    else:
+        # SESSION_STRING ya tiene la sesión completa, no necesita teléfono
+        await client.start()
 
     me = await client.get_me()
     log.info(f"Sesión iniciada como: {me.first_name} (@{me.username})")
