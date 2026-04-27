@@ -14,10 +14,10 @@ except ImportError:
     from telethon import TelegramClient, events
 
 # ── Configuración ──────────────────────────────────────────────────────────────
-API_ID        = YOUR_API_ID
-API_HASH      = 'YOUR_API_HASH'
-CANAL_ORIGEN  = -1001660762528   # VIP 99% ACCURATE SIGNALS
-CANAL_DESTINO = -1003918090564   # Trading Signals Vip
+API_ID        = int(os.environ.get('API_ID', 0))
+API_HASH      = os.environ.get('API_HASH', '')
+CANAL_ORIGEN  = int(os.environ.get('CANAL_ORIGEN', 0))
+CANAL_DESTINO = int(os.environ.get('CANAL_DESTINO', 0))
 _session_string = os.environ.get('SESSION_STRING')
 
 # En Railway usa StringSession (string corto desde variable de entorno)

@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.venv-1/
+.DS_Store
+.mplconfig/
+trading/data/.mpl_cache/
+
+# Credenciales y sesión Telegram
+.env
+*.session
+*.session-journal
+
+# Logs
+*.log
