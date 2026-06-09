@@ -43,10 +43,10 @@ log = logging.getLogger(__name__)
 # ── Patrones de detección ──────────────────────────────────────────────────────
 
 # Dirección del trade (obligatorio)
-DIRECCION = re.compile(r'\b(BUY|SELL)\b', re.IGNORECASE)
+DIRECCION = re.compile(r'\b(BUY|SELL|LONG|SHORT)\b', re.IGNORECASE)
 
 # Gestión de riesgo (obligatorio)
-RIESGO = re.compile(r'\b(SL|TP|T\.P|S\.L|Stop\s*Loss|Take\s*Profit)\b', re.IGNORECASE)
+RIESGO = re.compile(r'\b(SL|TP|T\.P|S\.L|Stop\s*Loss|Take\s*Profit|Stop|Target)\b', re.IGNORECASE)
 
 # Precio numérico SIN símbolo $ (obligatorio): entero o decimal, ej: 4700, 1.3527, 2345.50
 PRECIO = re.compile(r'(?<!\$)\b\d{3,6}([.,]\d{1,5})?\b')
