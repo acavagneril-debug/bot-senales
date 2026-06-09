@@ -14,17 +14,40 @@ except ImportError:
     from telethon import TelegramClient, events
 
 # ── Configuración ──────────────────────────────────────────────────────────────
-API_ID        = int(os.environ.get('API_ID', 0))
-API_HASH      = os.environ.get('API_HASH', '')
-CANAL_ORIGEN  = int(os.environ.get('CANAL_ORIGEN', 0))
-CANAL_DESTINO = int(os.environ.get('CANAL_DESTINO', 0))
+
+def parse_int_env(name: str, default: int = 0) -> int:
+    value = os.environ.get(name, '')
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+API_ID        = parse_int_env('API_ID')
+API_HASH      = os.environ.get('API_HASH', '').strip()
+
+# Acepta IDs numéricos o nombres de chat/canal
+def parse_chat_id(value: str):
+    if not value:
+        return 0
+    try:
+        return int(value)
+    except ValueError:
+        return value
+
+CANAL_ORIGEN  = parse_chat_id(os.environ.get('CANAL_ORIGEN', ''))
+CANAL_DESTINO = parse_chat_id(os.environ.get('CANAL_DESTINO', ''))
 _session_string = os.environ.get('SESSION_STRING')
 
 # En Railway usa StringSession (string corto desde variable de entorno)
 # En local usa el archivo sesion_trading.session
 if _session_string:
     from telethon.sessions import StringSession
-    SESION = StringSession(_session_string)
+    try:
+        SESION = StringSession(_session_string)
+    except ValueError:
+        raise RuntimeError(
+            'SESSION_STRING no es un StringSession válido. Genera uno con exportar_sesion.py y copia el valor completo.'
+        )
 else:
     SESION = 'sesion_trading'
 
@@ -43,10 +66,16 @@ log = logging.getLogger(__name__)
 # ── Patrones de detección ──────────────────────────────────────────────────────
 
 # Dirección del trade (obligatorio)
-DIRECCION = re.compile(r'\b(BUY|SELL|LONG|SHORT)\b', re.IGNORECASE)
+DIRECCION = re.compile(
+    r'\b(BUY|SELL|LONG|SHORT|COMPRA|VENTA|LARGO|CORTO)\b',
+    re.IGNORECASE
+)
 
 # Gestión de riesgo (obligatorio)
-RIESGO = re.compile(r'\b(SL|TP|T\.P|S\.L|Stop\s*Loss|Take\s*Profit|Stop|Target)\b', re.IGNORECASE)
+RIESGO = re.compile(
+    r'\b(SL|TP|T\.P|S\.L|Stop\s*Loss|Take\s*Profit|Stop|Target|Objetivo|Objetivos|OBJETIVO|OBJETIVOS)\b',
+    re.IGNORECASE
+)
 
 # Precio numérico SIN símbolo $ (obligatorio): entero o decimal, ej: 4700, 1.3527, 2345.50
 PRECIO = re.compile(r'(?<!\$)\b\d{3,6}([.,]\d{1,5})?\b')
@@ -96,10 +125,23 @@ def es_señal(texto: str) -> tuple[bool, str]:
 
 
 # ── Cliente y manejador de eventos ────────────────────────────────────────────
-client = TelegramClient(SESION, API_ID, API_HASH)
+client = None
 
 
-@client.on(events.NewMessage(chats=CANAL_ORIGEN))
+def crear_client() -> TelegramClient:
+    if not API_ID or not API_HASH:
+        raise RuntimeError(
+            'Debe definir API_ID y API_HASH en el entorno antes de iniciar el bot.'
+        )
+
+    client = TelegramClient(SESION, API_ID, API_HASH)
+    client.add_event_handler(
+        manejar_mensaje,
+        events.NewMessage(chats=CANAL_ORIGEN)
+    )
+    return client
+
+
 async def manejar_mensaje(event):
     texto = event.message.text or ''
     preview = texto[:80].replace('\n', ' ')
@@ -109,7 +151,7 @@ async def manejar_mensaje(event):
 
         if valido:
             # Reenviar el mensaje tal cual (sin exponer el origen)
-            await client.send_message(CANAL_DESTINO, texto)
+            await event.client.send_message(CANAL_DESTINO, texto)
             log.info(f"REENVIADO  | {motivo} | {preview!r}")
         else:
             log.info(f"IGNORADO   | {motivo} | {preview!r}")
@@ -119,7 +161,7 @@ async def manejar_mensaje(event):
 
 
 # ── Histórico: reenvía los últimos N mensajes que pasen el filtro ──────────────
-async def reenviar_historico(limite_señales: int = 5):
+async def reenviar_historico(client: TelegramClient, limite_señales: int = 5):
     log.info(f"Buscando las últimas {limite_señales} señales en el historial...")
     señales_encontradas = 0
     mensajes_revisados = 0
@@ -153,6 +195,8 @@ async def main():
     bot_token = os.environ.get('BOT_TOKEN')
     phone     = os.environ.get('PHONE_NUMBER')
 
+    client = crear_client()
+
     if bot_token:
         await client.start(bot_token=bot_token)
     elif phone:
@@ -167,7 +211,7 @@ async def main():
     log.info(f"Canal destino:           {CANAL_DESTINO}")
 
     # Reenviar las últimas 5 señales del historial antes de escuchar en tiempo real
-    await reenviar_historico(limite_señales=5)
+    await reenviar_historico(client, limite_señales=5)
 
     log.info("Bot activo. Presiona Ctrl+C para detener.\n")
     await client.run_until_disconnected()
