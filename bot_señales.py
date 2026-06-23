@@ -197,12 +197,14 @@ async def main():
 
     client = crear_client()
 
-    if bot_token:
+    if _session_string:
+        # SESSION_STRING ya tiene la sesión completa, no pedir código
+        await client.start()
+    elif bot_token:
         await client.start(bot_token=bot_token)
     elif phone:
         await client.start(phone=phone)
     else:
-        # SESSION_STRING ya tiene la sesión completa, no necesita teléfono
         await client.start()
 
     me = await client.get_me()
