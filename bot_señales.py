@@ -36,7 +36,7 @@ def parse_chat_id(value: str):
 
 CANAL_ORIGEN  = parse_chat_id(os.environ.get('CANAL_ORIGEN', ''))
 CANAL_DESTINO = parse_chat_id(os.environ.get('CANAL_DESTINO', ''))
-_session_string = os.environ.get('SESSION_STRING')
+_session_string = os.environ.get('SESSION_STRING', '').strip()
 
 # En Railway usa StringSession (string corto desde variable de entorno)
 # En local usa el archivo sesion_trading.session
@@ -192,20 +192,25 @@ async def reenviar_historico(client: TelegramClient, limite_señales: int = 5):
 
 # ── Punto de entrada ───────────────────────────────────────────────────────────
 async def main():
-    bot_token = os.environ.get('BOT_TOKEN')
-    phone     = os.environ.get('PHONE_NUMBER')
-
     client = crear_client()
 
     if _session_string:
-        # SESSION_STRING ya tiene la sesión completa, no pedir código
-        await client.start()
-    elif bot_token:
-        await client.start(bot_token=bot_token)
-    elif phone:
-        await client.start(phone=phone)
+        # Conectar sin auth interactiva; falla claro si la sesión expiró
+        await client.connect()
+        if not await client.is_user_authorized():
+            raise RuntimeError(
+                'SESSION_STRING inválida o expirada. '
+                'Regenerá una nueva con exportar_sesion.py y actualizá la variable en Railway.'
+            )
     else:
-        await client.start()
+        bot_token = os.environ.get('BOT_TOKEN')
+        phone     = os.environ.get('PHONE_NUMBER')
+        if bot_token:
+            await client.start(bot_token=bot_token)
+        elif phone:
+            await client.start(phone=phone)
+        else:
+            raise RuntimeError('Definí SESSION_STRING, BOT_TOKEN o PHONE_NUMBER en el entorno.')
 
     me = await client.get_me()
     log.info(f"Sesión iniciada como: {me.first_name} (@{me.username})")
