@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "Bot Señales Telegram",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "editor.fontSize": 14,
+    "editor.tabSize": 4,
+    "python.defaultInterpreterPath": "/usr/local/bin/python3",
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/*.session": true,
+      "**/*.session-journal": true,
+      "**/*.log": true
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.patterns": {
+      "bot_señales.py": "test_deteccion.py, exportar_sesion.py, nueva_sesion.py, listar_canales.py"
+    }
+  }
+}
