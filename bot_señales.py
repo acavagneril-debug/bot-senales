@@ -43,6 +43,8 @@ def parse_chat_id(value: str):
 CANAL_ORIGEN  = parse_chat_id(os.environ.get('CANAL_ORIGEN', ''))
 CANAL_DESTINO = parse_chat_id(os.environ.get('CANAL_DESTINO', ''))
 BOT_TOKEN     = os.environ.get('BOT_TOKEN', '').strip()
+# Grupos con temas: ID del tema donde publica el bot (vacío = tema General)
+TEMA_DESTINO  = parse_int_env('TEMA_DESTINO') or None
 # Al arrancar, publicar las últimas N señales del origen (0 = no publicar histórico)
 PUBLICAR_ULTIMAS = max(parse_int_env('PUBLICAR_ULTIMAS'), 0)
 _session_string = os.environ.get('SESSION_STRING', '').strip()
@@ -315,7 +317,7 @@ async def main():
         + (" (publica las últimas señales al arrancar)" if PUBLICAR_ULTIMAS else " (solo pendientes desde el último id)")
     )
 
-    publicador = Publicador(BOT_TOKEN, CANAL_DESTINO)
+    publicador = Publicador(BOT_TOKEN, CANAL_DESTINO, TEMA_DESTINO)
     await publicador.iniciar()
 
     try:

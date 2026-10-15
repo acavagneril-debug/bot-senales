@@ -37,9 +37,11 @@ def _largo_telegram(texto: str) -> int:
 
 
 class Publicador:
-    def __init__(self, token: str, chat_destino):
+    def __init__(self, token: str, chat_destino, tema: int | None = None):
         self.bot = Bot(token)
         self.chat_destino = chat_destino
+        # Grupos con temas: message_thread_id del tema donde publicar (None = General)
+        self.destino = {'chat_id': chat_destino, 'message_thread_id': tema}
 
     async def iniciar(self):
         await self.bot.initialize()
@@ -51,7 +53,10 @@ class Publicador:
                 f'El bot @{yo.username} no puede acceder al grupo destino {self.chat_destino}: {e}. '
                 'Agrégalo al grupo como admin y revisa CANAL_DESTINO.'
             ) from e
-        log.info(f"Bot publicador:          @{yo.username} -> {chat.title!r}")
+        tema = self.destino['message_thread_id']
+        log.info(f"Bot publicador:          @{yo.username} -> {chat.title!r}" + (f" (tema {tema})" if tema else ""))
+        if chat.is_forum and not tema:
+            log.warning("El grupo tiene temas y no hay TEMA_DESTINO: se publicará en el tema General")
 
     async def cerrar(self):
         await self.bot.shutdown()
@@ -68,10 +73,10 @@ class Publicador:
 
     async def _texto(self, pub: Publicacion):
         try:
-            await self.bot.send_message(self.chat_destino, pub.html, parse_mode=ParseMode.HTML)
+            await self.bot.send_message(text=pub.html, parse_mode=ParseMode.HTML, **self.destino)
         except BadRequest as e:
             log.warning(f"Formato no aceptado por el bot ({e}); se publica sin formato")
-            await self.bot.send_message(self.chat_destino, pub.texto)
+            await self.bot.send_message(text=pub.texto, **self.destino)
 
     async def _imagen(self, pub: Publicacion, con_caption: bool):
         enviar = self.bot.send_document if pub.imagen_como_archivo else self.bot.send_photo
@@ -81,10 +86,10 @@ class Publicador:
             archivo['filename'] = pub.nombre_archivo or 'imagen.jpg'
 
         if not con_caption:
-            await enviar(self.chat_destino, **archivo)
+            await enviar(**self.destino, **archivo)
             return
         try:
-            await enviar(self.chat_destino, caption=pub.html, parse_mode=ParseMode.HTML, **archivo)
+            await enviar(caption=pub.html, parse_mode=ParseMode.HTML, **self.destino, **archivo)
         except BadRequest as e:
             log.warning(f"Formato no aceptado por el bot ({e}); se publica sin formato")
-            await enviar(self.chat_destino, caption=pub.texto, **archivo)
+            await enviar(caption=pub.texto, **self.destino, **archivo)
