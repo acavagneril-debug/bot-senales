@@ -13,3 +13,5 @@ trading/data/.mpl_cache/
 
 # Logs
 *.log
+estado.json
+estado.json.tmp
